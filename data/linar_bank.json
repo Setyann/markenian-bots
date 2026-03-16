@@ -1,0 +1,64 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "tg_id": 6263051682,
+      "fullname": "Setyan Aram",
+      "phone": "+37441212565",
+      "role": "admin",
+      "status": "active",
+      "pin_hash": "ebd4d8055e1e31a72d3da8d5c6a31570ff2d745cca8e93fda5f7be198d48f669",
+      "pin_attempts": 0,
+      "created_at": "2026-02-28T18:24:21"
+    },
+    {
+      "id": 2,
+      "tg_id": 7838172286,
+      "fullname": "Setyan Aram",
+      "phone": "+37494055134",
+      "role": "operator",
+      "status": "active",
+      "pin_hash": "ebd4d8055e1e31a72d3da8d5c6a31570ff2d745cca8e93fda5f7be198d48f669",
+      "pin_attempts": 0,
+      "created_at": "2026-02-28T18:51:06"
+    }
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "name": "Main",
+      "currency": "MRK",
+      "balance": 0.0,
+      "status": "active",
+      "created_at": "2026-02-28T18:24:21"
+    }
+  ],
+  "limits": [],
+  "cards": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "card_number": "5729709400000000",
+      "status": "active",
+      "type": "virtual",
+      "created_at": "2026-02-28T18:39:36",
+      "blocked_reason": null
+    }
+  ],
+  "transactions": [],
+  "credit_applications": [],
+  "support_tickets": [],
+  "otp_codes": [],
+  "audit_logs": [],
+  "counters": {
+    "users": 2,
+    "accounts": 1,
+    "cards": 1,
+    "transactions": 0,
+    "credit_applications": 0,
+    "support_tickets": 0,
+    "otp_codes": 0,
+    "audit_logs": 0
+  }
+}
