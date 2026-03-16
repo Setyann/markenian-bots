@@ -25,6 +25,7 @@ from handlers.linar_bank.keyboards import (
     LANGS,
 )
 from handlers.linar_bank import db
+from handlers import registry
 
 
 load_dotenv()
@@ -873,6 +874,8 @@ async def register_phone(message: Message, state: FSMContext):
         if user:
             await db.create_account(user["id"], "Main", "MRK", 0.0)
             await db.ensure_limits(user["id"])
+    if user:
+        await registry.sync_user_from_linar(user)
     await message.answer(t(lang, "reg_success"))
     if user:
         await send_main_menu(message, user, lang)
@@ -1592,6 +1595,8 @@ async def admin_user_role(message: Message, state: FSMContext):
         user = await db.get_user_by_tg(data["tg_id"])
         await db.create_account(user["id"], "Main", "MRK", 0.0)
         await db.ensure_limits(user["id"])
+        if user:
+            await registry.sync_user_from_linar(user)
         await db.log_action(message.from_user.id, "admin_create_user", f"user_id={user['id']}")
         await message.answer(t(lang, "user_created"), reply_markup=get_back_keyboard(lang))
     else:

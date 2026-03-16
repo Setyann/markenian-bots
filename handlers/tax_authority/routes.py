@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 from aiogram import Router, F
 from dotenv import load_dotenv
 from os import getenv
@@ -8,12 +6,12 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from handlers.tax_authority.keyboards import *
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from handlers.tax_authority import db
 
 router = Router()
 
 load_dotenv()
 ADMIN_ID = getenv("ADMIN_ID")
-DATA_FILE = Path("data/data.json")
 
 user_languages = {}
 TEXTS = {
@@ -166,6 +164,36 @@ TEXTS = {
         "ru": "❌ Выдача штрафа отменена.",
         "hy": "❌ Տուգանքի նշանակումը չեղարկվել է։"
     },
+    "add_taxpayer_name": {
+        "en": "Enter taxpayer full name:",
+        "ru": "Введите полное имя налогоплательщика:",
+        "hy": "Enter taxpayer full name:",
+    },
+    "add_taxpayer_phone": {
+        "en": "Enter taxpayer phone number:",
+        "ru": "Введите номер телефона налогоплательщика:",
+        "hy": "Enter taxpayer phone number:",
+    },
+    "taxpayer_added": {
+        "en": "✅ Taxpayer added.",
+        "ru": "✅ Налогоплательщик добавлен.",
+        "hy": "✅ Taxpayer added.",
+    },
+    "remove_taxpayer_prompt": {
+        "en": "Enter taxpayer name or phone number to remove:",
+        "ru": "Введите имя или телефон налогоплательщика для удаления:",
+        "hy": "Enter taxpayer name or phone number to remove:",
+    },
+    "taxpayer_removed": {
+        "en": "✅ Taxpayer removed.",
+        "ru": "✅ Налогоплательщик удален.",
+        "hy": "✅ Taxpayer removed.",
+    },
+    "taxpayer_remove_not_found": {
+        "en": "❌ Taxpayer not found in the database.",
+        "ru": "❌ Налогоплательщик не найден в базе.",
+        "hy": "❌ Taxpayer not found in the database.",
+    },
     "view_all_taxpayers": {
         "en": "{id}. {name}, {phone_number}\n",
         "ru": "{id}. {name}, {phone_number}\n",
@@ -226,33 +254,19 @@ class TaxPenaltyStates(StatesGroup):
     waiting_for_reason = State()
     confirmation = State()
 
+
+class AdminUserStates(StatesGroup):
+    add_fullname = State()
+    add_phone = State()
+    remove_query = State()
+
 # --- Проверка наличия налогоплательщика ---
-def taxpayer_exists(name: str) -> bool:
-    if not DATA_FILE.exists():
-        return False
-    name = name.strip().lower()  # убираем пробелы и приводим к нижнему регистру
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    players = data.get("players", {})
-    return any(name == key.strip().lower() for key in players.keys())
+async def taxpayer_exists(name: str) -> bool:
+    return await db.has_taxpayer(name)
 
 # --- Сохранение штрафа ---
-def save_penalty(name: str, amount: float, reason: str):
-    if not DATA_FILE.exists():
-        data = {"taxpayers": {}, "penalties": []}
-    else:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-    penalty_entry = {
-        "name": name,
-        "amount": amount,
-        "reason": reason
-    }
-    data.setdefault("penalties", []).append(penalty_entry)
-
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+async def save_penalty(name: str, amount: float, reason: str, created_by: int | None = None):
+    await db.create_penalty(name, amount, reason, created_by)
 
 def detect_lang(message: Message) -> str:
     # 1. если пользователь уже выбирал язык вручную
@@ -279,6 +293,7 @@ async def restart_bot(message: Message):
 
 @router.message(Command("start"))
 async def start(message: Message):
+    await db.init_db()
     lang = detect_lang(message)
     user_languages.setdefault(message.from_user.id, lang)
     if str(message.from_user.id) == ADMIN_ID:
@@ -365,7 +380,7 @@ async def penalty_name(message: Message, state: FSMContext):
     lang = detect_lang(message)
     name = message.text.strip()
 
-    if not taxpayer_exists(name):
+    if not await taxpayer_exists(name):
         await message.answer(TEXTS["taxpayer_not_found"][lang])
         await state.clear()
         return
@@ -423,7 +438,7 @@ async def penalty_confirmation(message: Message, state: FSMContext):
     penalty = data['penalty'] 
 
     if text in ["yes", "да", "այո"]:
-        save_penalty(penalty['name'], penalty['amount'], penalty['reason'])
+        await save_penalty(penalty['name'], penalty['amount'], penalty['reason'], message.from_user.id)
         await message.answer(TEXTS["penalty_issued"][lang], reply_markup=get_menu_keyboard())
     else:
         await message.answer(TEXTS["penalty_canceled"][lang], reply_markup=get_menu_keyboard())
@@ -436,25 +451,18 @@ async def view_all_taxpayers(message: Message, state: FSMContext):
         return  # Только для админа
     lang = detect_lang(message)
     
-    if not DATA_FILE.exists():
-        await message.answer(TEXTS["no_taxpayers"][lang], reply_markup=get_menu_keyboard())
-        return
-
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        taxpayers = data.get("taxpayers", {})
-
+    taxpayers = await db.list_taxpayers()
     if not taxpayers:
         await message.answer(TEXTS["no_taxpayers"][lang], reply_markup=get_menu_keyboard())
         return
 
     # Формируем текст для всех налогоплательщиков
     users_text = ""
-    for idx, (name, info) in enumerate(taxpayers.items(), start=1):
+    for idx, taxpayer in enumerate(taxpayers, start=1):
         users_text += TEXTS["view_all_taxpayers"][lang].format(
-            id=idx,
-            name=name,
-            phone_number=info.get("phone", "N/A")
+            id=taxpayer.get("id", idx),
+            name=taxpayer.get("fullname", "N/A"),
+            phone_number=taxpayer.get("phone") or "N/A"
         )
 
     await message.answer(users_text, reply_markup=get_user_keyboard())
@@ -465,14 +473,7 @@ async def view_all_penalties(message: Message, state: FSMContext):
         return  # Только для админа
     lang = detect_lang(message)
     
-    if not DATA_FILE.exists():
-        await message.answer(TEXTS["no_penalties"][lang], reply_markup=get_menu_keyboard())
-        return
-
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        penalties = data.get("penalties", [])
-
+    penalties = await db.list_penalties()
     if not penalties:
         await message.answer(TEXTS["no_penalties"][lang], reply_markup=get_menu_keyboard())
         return
@@ -481,10 +482,10 @@ async def view_all_penalties(message: Message, state: FSMContext):
     penalties_text = ""
     for idx, penalty in enumerate(penalties, start=1):
         penalties_text += TEXTS["view_all_penalties"][lang].format(
-            id=idx,
-            name=penalty['name'],
-            amount=penalty['amount'],
-            reason=penalty['reason']
+            id=penalty.get("id", idx),
+            name=penalty.get("name", "N/A"),
+            amount=penalty.get("amount", 0),
+            reason=penalty.get("reason", "")
         )
 
     await message.answer(penalties_text, reply_markup=get_menu_keyboard())
@@ -493,40 +494,86 @@ async def view_all_penalties(message: Message, state: FSMContext):
 @router.message(Command("view_penalties"))
 async def view_penalties(message: Message):
     lang = detect_lang(message)
-    user_id = message.from_user.id
-    if not DATA_FILE.exists():
-        await message.answer(TEXTS["no_penalties"][lang])
-        return
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        penalties = data.get("penalties", [])
-    user_penalties = [p for p in penalties if p['name'].lower() == message.from_user.full_name.lower()]
+    user_penalties = await db.list_penalties_by_name(message.from_user.full_name)
     if not user_penalties:
         await message.answer(TEXTS["no_penalties"][lang])
         return
     penalties_text = TEXTS["view_penalties"][lang] + "\n"
     for idx, penalty in enumerate(user_penalties, start=1):
         penalties_text += TEXTS["view_all_penalties"][lang].format(
-            id=idx,
-            name=penalty['name'],
-            amount=penalty['amount'],
-            reason=penalty['reason']
+            id=penalty.get("id", idx),
+            name=penalty.get("name", "N/A"),
+            amount=penalty.get("amount", 0),
+            reason=penalty.get("reason", "")
         )  
     await message.answer(penalties_text)
 
 @router.message(F.text.contains("➕ Add User"))
-async def add_user(message: Message):
+async def add_user(message: Message, state: FSMContext):
     if str(message.from_user.id) != ADMIN_ID:
         return  # Только для админа
     lang = detect_lang(message)
-    await message.answer("Functionality to add user is not implemented yet.", reply_markup=get_menu_keyboard())
+    await state.clear()
+    await state.set_state(AdminUserStates.add_fullname)
+    await message.answer(TEXTS["add_taxpayer_name"][lang], reply_markup=ReplyKeyboardRemove())
+
+
+@router.message(AdminUserStates.add_fullname)
+async def add_user_fullname(message: Message, state: FSMContext):
+    lang = detect_lang(message)
+    fullname = message.text.strip()
+    if len(fullname) < 2:
+        await message.answer(TEXTS["add_taxpayer_name"][lang])
+        return
+    await state.update_data(fullname=fullname)
+    await state.set_state(AdminUserStates.add_phone)
+    await message.answer(TEXTS["add_taxpayer_phone"][lang])
+
+
+@router.message(AdminUserStates.add_phone)
+async def add_user_phone(message: Message, state: FSMContext):
+    lang = detect_lang(message)
+    phone_raw = message.text.strip()
+    phone_norm = "".join(ch for ch in phone_raw if ch.isdigit())
+    if len(phone_norm) < 8 or len(phone_norm) > 15:
+        await message.answer(TEXTS["add_taxpayer_phone"][lang])
+        return
+    data = await state.get_data()
+    await db.upsert_taxpayer(
+        tg_id=None,
+        fullname=data.get("fullname", ""),
+        phone=phone_raw,
+        source="manual_admin",
+        linar_user_id=None,
+    )
+    await message.answer(TEXTS["taxpayer_added"][lang], reply_markup=get_admin_keyboard())
+    await state.clear()
+
 
 @router.message(F.text.contains("➖ Remove User"))
-async def remove_user(message: Message):
+async def remove_user(message: Message, state: FSMContext):
     if str(message.from_user.id) != ADMIN_ID:
         return  # Только для админа
     lang = detect_lang(message)
-    await message.answer("Functionality to remove user is not implemented yet.", reply_markup=get_menu_keyboard())
+    await state.clear()
+    await state.set_state(AdminUserStates.remove_query)
+    await message.answer(TEXTS["remove_taxpayer_prompt"][lang], reply_markup=ReplyKeyboardRemove())
+
+
+@router.message(AdminUserStates.remove_query)
+async def remove_user_query(message: Message, state: FSMContext):
+    lang = detect_lang(message)
+    query = message.text.strip()
+    if not query:
+        await message.answer(TEXTS["remove_taxpayer_prompt"][lang])
+        return
+    removed = await db.delete_taxpayer(query)
+    if not removed:
+        await message.answer(TEXTS["taxpayer_remove_not_found"][lang], reply_markup=get_admin_keyboard())
+        await state.clear()
+        return
+    await message.answer(TEXTS["taxpayer_removed"][lang], reply_markup=get_admin_keyboard())
+    await state.clear()
 
 @router.message()
 async def unknown_command(message: Message):
