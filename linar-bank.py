@@ -2,7 +2,7 @@ import os
 import asyncio
 import aiogram # type: ignore
 import dotenv # type: ignore
-from handlers.linar_bank.routes import router, logger
+from handlers.linar_bank.routes import router
 
 dotenv.load_dotenv()
 TOKEN = os.getenv("LINAR_BANK_TOKEN")
@@ -13,8 +13,6 @@ dp.include_router(router)
 
 async def main():
     bot = aiogram.Bot(token=TOKEN)
-    
-    asyncio.create_task(logger(bot))
     
     print("Linar Bank is starting...")
     
