@@ -31,15 +31,6 @@ from handlers import registry
 load_dotenv()
 router = Router()
 
-async def logger(bot):
-    while True:
-        await asyncio.sleep(1800)
-        try:
-            await bot.send_message(ADMIN_ID, "Bot is working...")
-            print("Bot is working...")
-        except Exception as e:
-            print("Error: " + e)
-
 ADMIN_ID = int(os.getenv("ADMIN_ID") or "0")
 
 ROLE_CLIENT = "client"
