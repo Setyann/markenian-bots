@@ -1,16 +1,18 @@
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_PATH = BASE_DIR / "data" / "tax_authority.json"
+DATA_PATH = BASE_DIR / "data" / "data.json"
+LEGACY_PATH = BASE_DIR / "data" / "tax_authority.json"
+NAMESPACE = "tax_authority"
 
 _LOCK = asyncio.Lock()
 
 
 def now_ts() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def _default_data() -> dict:
@@ -49,26 +51,50 @@ def _ensure_keys(data: dict):
     _compute_counters(data)
 
 
-def _read_data_sync() -> dict:
+def _read_root_sync() -> dict:
     if not DATA_PATH.exists():
-        DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-        data = _default_data()
-        _write_data_sync(data)
-        return data
+        return {}
     try:
         raw = DATA_PATH.read_text(encoding="utf-8")
-        data = json.loads(raw) if raw.strip() else _default_data()
+        root = json.loads(raw) if raw.strip() else {}
     except Exception:
+        root = {}
+    return root if isinstance(root, dict) else {}
+
+
+def _read_legacy_sync() -> dict:
+    if not LEGACY_PATH.exists():
+        return {}
+    try:
+        raw = LEGACY_PATH.read_text(encoding="utf-8")
+        data = json.loads(raw) if raw.strip() else {}
+    except Exception:
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def _read_data_sync() -> dict:
+    root = _read_root_sync()
+    data = root.get(NAMESPACE)
+    if not isinstance(data, dict):
+        data = _read_legacy_sync()
+    if not data:
         data = _default_data()
     _ensure_keys(data)
     return data
 
 
-def _write_data_sync(data: dict):
+def _write_root_sync(root: dict):
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = DATA_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.write_text(json.dumps(root, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(DATA_PATH)
+
+
+def _write_data_sync(data: dict):
+    root = _read_root_sync()
+    root[NAMESPACE] = data
+    _write_root_sync(root)
 
 
 def _next_id(data: dict, key: str) -> int:
