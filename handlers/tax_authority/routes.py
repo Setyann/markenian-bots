@@ -165,9 +165,9 @@ TEXTS = {
         "hy": "❌ Տուգանքի նշանակումը չեղարկվել է։"
     },
     "add_taxpayer_name": {
-        "en": "Enter taxpayer full name:",
-        "ru": "Введите полное имя налогоплательщика:",
-        "hy": "Enter taxpayer full name:",
+        "en": "Enter taxpayer full name. You can also cancel adding by /cancel_adding_taxpayer:",
+        "ru": "Введите полное имя налогоплательщика. Вы также можете отменить добавление налогоплательщика командой /cancel_adding_taxpayer:",
+        "hy": "Enter taxpayer full name. You can also cancel adding by /cancel_adding_taxpayer:",
     },
     "add_taxpayer_phone": {
         "en": "Enter taxpayer phone number:",
@@ -180,9 +180,9 @@ TEXTS = {
         "hy": "✅ Taxpayer added.",
     },
     "remove_taxpayer_prompt": {
-        "en": "Enter taxpayer name or phone number to remove:",
-        "ru": "Введите имя или телефон налогоплательщика для удаления:",
-        "hy": "Enter taxpayer name or phone number to remove:",
+        "en": "Enter taxpayer name or phone number to remove. You can also cancel removing by /cancel_removing_taxpayer:",
+        "ru": "Введите имя или телефон налогоплательщика для удаления. Вы также можете отменить удаление налогоплательщика командой /cancel_removing_taxpayer:",
+        "hy": "Enter taxpayer name or phone number to remove. You can also cancel removing by /cancel_removing_taxpayer:",
     },
     "taxpayer_removed": {
         "en": "✅ Taxpayer removed.",
@@ -228,6 +228,16 @@ TEXTS = {
         "en": "🏠 Main Menu",
         "ru": "🏠 Главное меню",
         "hy": "🏠 Գլխավոր մենյու"
+    },
+    "cancel_adding_taxpayer": {
+        "en": "❌ Taxpayer add cancelled",
+        "ru": "❌ Добавление налогоплательщика отменено",
+        "hy": "❌ Taxpayer add cancelled"
+    },
+    "cancel_removing_taxpayer": {
+        "en": "❌ Taxpayer removing cancelled",
+        "ru": "❌ Удаление налогоплательщика отменено",
+        "hy": "❌ Taxpayer removing cancelled"
     },
     "unknown_command": {
         "en": "Unrecognized command. Use /help to see available commands.",
@@ -517,6 +527,13 @@ async def add_user(message: Message, state: FSMContext):
     await state.set_state(AdminUserStates.add_fullname)
     await message.answer(TEXTS["add_taxpayer_name"][lang], reply_markup=ReplyKeyboardRemove())
 
+@router.message(Command("cancel_adding_taxpayer"))
+async def cancel_adding_taxpayer(message: Message):
+    lang = detect_lang(message)
+    await message.answer(
+        TEXTS["cancel_adding_taxpayer"][lang],
+        reply_markup=get_menu_keyboard()
+    )
 
 @router.message(AdminUserStates.add_fullname)
 async def add_user_fullname(message: Message, state: FSMContext):
@@ -559,6 +576,13 @@ async def remove_user(message: Message, state: FSMContext):
     await state.set_state(AdminUserStates.remove_query)
     await message.answer(TEXTS["remove_taxpayer_prompt"][lang], reply_markup=ReplyKeyboardRemove())
 
+@router.message(Command("cancel_removing_taxpayer"))
+async def cancel_adding_taxpayer(message: Message):
+    lang = detect_lang(message)
+    await message.answer(
+        TEXTS["cancel_removing_taxpayer"][lang],
+        reply_markup=get_menu_keyboard()
+    )
 
 @router.message(AdminUserStates.remove_query)
 async def remove_user_query(message: Message, state: FSMContext):
