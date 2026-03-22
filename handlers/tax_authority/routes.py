@@ -530,6 +530,7 @@ async def add_user(message: Message, state: FSMContext):
 @router.message(Command("cancel_adding_taxpayer"))
 async def cancel_adding_taxpayer(message: Message):
     lang = detect_lang(message)
+    await state.clear()
     await message.answer(
         TEXTS["cancel_adding_taxpayer"][lang],
         reply_markup=get_menu_keyboard()
@@ -577,8 +578,9 @@ async def remove_user(message: Message, state: FSMContext):
     await message.answer(TEXTS["remove_taxpayer_prompt"][lang], reply_markup=ReplyKeyboardRemove())
 
 @router.message(Command("cancel_removing_taxpayer"))
-async def cancel_adding_taxpayer(message: Message):
+async def cancel_removing_taxpayer(message: Message):
     lang = detect_lang(message)
+    await state.clear()
     await message.answer(
         TEXTS["cancel_removing_taxpayer"][lang],
         reply_markup=get_menu_keyboard()
