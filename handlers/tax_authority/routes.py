@@ -453,7 +453,7 @@ async def view_all_taxpayers(message: Message, state: FSMContext):
     
     taxpayers = await db.list_taxpayers()
     if not taxpayers:
-        await message.answer(TEXTS["no_taxpayers"][lang], reply_markup=get_menu_keyboard())
+        await message.answer(TEXTS["no_taxpayers"][lang], reply_markup=get_user_keyboard())
         return
 
     # Формируем текст для всех налогоплательщиков
