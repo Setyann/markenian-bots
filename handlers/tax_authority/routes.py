@@ -265,6 +265,14 @@ class TaxPenaltyStates(StatesGroup):
     confirmation = State()
 
 
+class PayFineStates(StatesGroup):
+    waiting_for_name = State()
+    waiting_for_amount = State()
+    waiting_for_reason = State()
+    waiting_for_card_number = State()
+    confirmation = State()
+
+
 class AdminUserStates(StatesGroup):
     add_fullname = State()
     add_phone = State()
@@ -342,6 +350,8 @@ async def help(message: Message):
 @router.message(Command("pay_fine"))
 async def pay_fine(message: Message):
     lang = detect_lang(message)
+    # await state.clear()
+    # await state.set_state(PayFineStates.add_fullname)
     await message.answer(TEXTS["pay_fine"][lang])
 
 @router.message(Command("info"))
