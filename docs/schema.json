@@ -1,0 +1,22 @@
+{
+  "central_bank": {
+    "role": "settlement_and_money_movement",
+    "can": ["interbank_transfer", "settlement_processing"],
+    "cannot": ["budgeting", "tax_calculation", "salary_decision"]
+  },
+  "treasury": {
+    "role": "state_budget_executor",
+    "can": ["pay_salaries", "execute_budget"],
+    "cannot": ["create_money", "change_tax_rules"]
+  },
+  "tax_authority": {
+    "role": "tax_calculation_and_control",
+    "can": ["calculate_taxes", "verify_payments"],
+    "cannot": ["spend_budget", "make_payments"]
+  },
+  "statistics": {
+    "role": "economic_measurement",
+    "can": ["calculate_gdp", "inflation_reports"],
+    "cannot": ["financial_operations"]
+  }
+}
