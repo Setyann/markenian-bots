@@ -1,134 +1,128 @@
 {
-  "version": "0.1",
+  "version": "1.0",
   "system": "Markenia Financial Core",
 
   "entities": {
     "central_bank": {
       "role": "settlement_and_interbank_infrastructure",
-      "can": [
-        "interbank_transfer",
-        "settlement_processing",
-        "account_clearing",
-        "liquidity_routing"
-      ],
-      "cannot": [
-        "budget_creation",
-        "tax_calculation",
-        "salary_definition",
-        "economic_statistics"
-      ],
+      "permissions": {
+        "can": [
+          "interbank_transfer",
+          "settlement_processing",
+          "account_clearing",
+          "liquidity_routing"
+        ],
+        "cannot": [
+          "budget_creation",
+          "tax_calculation",
+          "salary_definition",
+          "economic_statistics"
+        ]
+      },
       "dependencies": ["treasury", "banks"]
     },
 
     "treasury": {
       "role": "state_budget_execution",
-      "can": [
-        "execute_payments",
-        "pay_salaries",
-        "pay_pensions",
-        "pay_contracts",
-        "receive_tax_revenue"
-      ],
-      "cannot": [
-        "create_money",
-        "modify_tax_rules",
-        "calculate_gdp"
-      ],
+      "permissions": {
+        "can": [
+          "execute_payments",
+          "pay_salaries",
+          "pay_pensions",
+          "pay_contracts",
+          "receive_tax_revenue"
+        ],
+        "cannot": [
+          "create_money",
+          "modify_tax_rules",
+          "calculate_gdp"
+        ]
+      },
       "dependencies": ["tax_authority", "central_bank", "banks"]
     },
 
     "tax_authority": {
       "role": "tax_calculation_and_enforcement",
-      "can": [
-        "calculate_tax",
-        "define_tax_liability",
-        "verify_payments",
-        "generate_tax_reports"
-      ],
-      "cannot": [
-        "spend_budget",
-        "execute_payments",
-        "change_monetary_policy"
-      ],
+      "permissions": {
+        "can": [
+          "calculate_tax",
+          "define_tax_liability",
+          "verify_payments",
+          "generate_tax_reports"
+        ],
+        "cannot": [
+          "spend_budget",
+          "execute_payments",
+          "change_monetary_policy"
+        ]
+      },
       "dependencies": ["treasury", "banks"]
     },
 
     "statistics": {
       "role": "economic_measurement_layer",
-      "can": [
-        "calculate_gdp",
-        "calculate_inflation",
-        "calculate_employment",
-        "publish_reports"
-      ],
-      "cannot": [
-        "execute_transactions",
-        "define_taxes",
-        "control_budget"
-      ],
-      "dependencies": ["tax_authority", "banks", "treasury"]
+      "permissions": {
+        "can": [
+          "calculate_gdp",
+          "calculate_inflation",
+          "calculate_employment",
+          "publish_reports"
+        ],
+        "cannot": [
+          "execute_transactions",
+          "define_taxes",
+          "control_budget"
+        ]
+      },
+      "dependencies": ["tax_authority", "treasury", "banks"]
     },
 
     "banks": {
       "role": "commercial_banking_layer",
-      "can": [
-        "user_accounts",
-        "deposit_handling",
-        "transfer_processing"
-      ],
-      "cannot": [
-        "create_fiscal_policy",
-        "define_taxes",
-        "execute_budget_autonomously"
-      ],
+      "permissions": {
+        "can": [
+          "user_accounts",
+          "deposit_handling",
+          "transfer_processing"
+        ],
+        "cannot": [
+          "create_fiscal_policy",
+          "define_taxes",
+          "execute_budget_autonomously"
+        ]
+      },
       "dependencies": ["central_bank"]
     }
   },
 
-  "event_contract": {
-    "required_fields": [
-      "transaction_id",
-      "from",
-      "to",
-      "type",
-      "timestamp",
-      "payload"
-    ]
-  },
-
-  "routing": {
+  "events": {
     "salary_request": {
       "from": "tax_authority",
       "to": "treasury"
     },
-
     "tax_calculated": {
       "from": "tax_authority",
       "to": "treasury"
     },
-
     "budget_check": {
       "from": "treasury",
       "to": "central_bank"
     },
-
     "payment_execution": {
       "from": "treasury",
       "to": "central_bank"
     },
-
     "settlement_done": {
       "from": "central_bank",
       "to": "banks"
     },
-
     "report_generated": {
       "from": "statistics",
       "to": "treasury"
     }
   },
 
-  "state_machine": {
+  "flows": {
     "salary_flow": [
       "salary_request",
       "tax_calculated",
@@ -142,6 +136,12 @@
       "payment_execution",
       "settlement_done"
     ]
+  },
+
+  "validation": {
+    "enforce_flow_match": true,
+    "enforce_event_routing": true,
+    "reject_unknown_events": true
   },
 
   "state_tracking": {
