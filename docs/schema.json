@@ -101,5 +101,34 @@
       "all_taxes_calculated_before_payment",
       "statistics_is_independent_from_finance"
     ]
+  },
+  
+  "events": {
+    "salary_request": {
+      "from": "tax_authority",
+      "to": "treasury"
+    },
+    "payment_execution": {
+      "from": "treasury",
+      "to": "central_bank"
+    }
+  },
+  
+  "message_format": {
+    "from": "string",
+    "to": "string",
+    "type": "string",
+    "timestamp": "number",
+    "transaction_id": "string",
+    "data": "object"
+  },
+  
+  "state_tracking": {
+    "enabled": true,
+    "stores": [
+      "transactions",
+      "balances",
+      "tax_records"
+    ]
   }
 }
