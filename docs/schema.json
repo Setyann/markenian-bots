@@ -1,22 +1,105 @@
 {
+  "version": "0.1",
+  "system": "Markenia Financial Core",
+
   "central_bank": {
-    "role": "settlement_and_money_movement",
-    "can": ["interbank_transfer", "settlement_processing"],
-    "cannot": ["budgeting", "tax_calculation", "salary_decision"]
+    "role": "settlement_and_interbank_infrastructure",
+    "rules": {
+      "can": [
+        "interbank_transfer",
+        "settlement_processing",
+        "account_clearing",
+        "liquidity_routing"
+      ],
+      "cannot": [
+        "budget_creation",
+        "tax_calculation",
+        "salary_definition",
+        "economic_statistics"
+      ]
+    },
+    "dependencies": ["treasury", "banks"]
   },
+
   "treasury": {
-    "role": "state_budget_executor",
-    "can": ["pay_salaries", "execute_budget"],
-    "cannot": ["create_money", "change_tax_rules"]
+    "role": "state_budget_execution",
+    "rules": {
+      "can": [
+        "execute_payments",
+        "pay_salaries",
+        "pay_pensions",
+        "pay_contracts",
+        "receive_tax_revenue"
+      ],
+      "cannot": [
+        "create_money",
+        "modify_tax_rules",
+        "calculate_gdp"
+      ]
+    },
+    "dependencies": ["tax_authority", "central_bank", "banks"]
   },
+
   "tax_authority": {
-    "role": "tax_calculation_and_control",
-    "can": ["calculate_taxes", "verify_payments"],
-    "cannot": ["spend_budget", "make_payments"]
+    "role": "tax_calculation_and_enforcement",
+    "rules": {
+      "can": [
+        "calculate_tax",
+        "define_tax_liability",
+        "verify_payments",
+        "generate_tax_reports"
+      ],
+      "cannot": [
+        "spend_budget",
+        "execute_payments",
+        "change_monetary_policy"
+      ]
+    },
+    "dependencies": ["treasury", "banks"]
   },
+
   "statistics": {
-    "role": "economic_measurement",
-    "can": ["calculate_gdp", "inflation_reports"],
-    "cannot": ["financial_operations"]
+    "role": "economic_measurement_layer",
+    "rules": {
+      "can": [
+        "calculate_gdp",
+        "calculate_inflation",
+        "calculate_employment",
+        "publish_reports"
+      ],
+      "cannot": [
+        "execute_transactions",
+        "define_taxes",
+        "control_budget"
+      ]
+    },
+    "dependencies": ["tax_authority", "banks", "treasury"]
+  },
+
+  "banks": {
+    "role": "commercial_banking_layer",
+    "rules": {
+      "can": [
+        "user_accounts",
+        "deposit_handling",
+        "transfer_processing"
+      ],
+      "cannot": [
+        "create_fiscal_policy",
+        "define_taxes",
+        "execute_budget_autonomously"
+      ]
+    },
+    "dependencies": ["central_bank"]
+  },
+
+  "core_rules": {
+    "principles": [
+      "one_role_one_function",
+      "no_entity_controls_money_and_policy_simultaneously",
+      "all_payments_go_through_settlement_layer",
+      "all_taxes_calculated_before_payment",
+      "statistics_is_independent_from_finance"
+    ]
   }
 }
